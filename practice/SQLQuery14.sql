@@ -1,21 +1,27 @@
 -- CREATE DATABASE TrySQL;
---USE trysql;
---CREATE TABLE Orders2 (
+
+USE trysql;
+
+-- CREATE TABLE Orders2 (
 --    OrderID INT,
---    Customer VARCHAR (20),
---    OrderDate DATE,
---    Sales INT
---);
---INSERT  INTO Orders2
---VALUES (1, 'A', '2026-01-01', 1000),
---(2, 'A', '2026-01-05', 200),
---(3, 'A', '2026-01-10', 300),
---(4, 'B', '2026-01-02', 1500),
---(5, 'B', '2026-01-08', 400);
---SELECT *
---FROM   Orders2;
---SELECT *
---FROM TrySQL.dbo.Orders2;
+--     Customer VARCHAR (20),
+--     OrderDate DATE,
+--     Sales INT
+-- );
+
+INSERT  INTO Orders2
+VALUES (1, 'A', '2026-01-01', 1000),
+(2, 'A', '2026-01-05', 200),
+(3, 'A', '2026-01-10', 300),
+(4, 'B', '2026-01-02', 1500),
+(5, 'B', '2026-01-08', 400);
+
+SELECT *
+FROM   Orders2;
+
+SELECT *
+FROM TrySQL.dbo.Orders2;
+
 SELECT OrderID,
        Customer,
        Sales,
