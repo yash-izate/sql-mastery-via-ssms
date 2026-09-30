@@ -201,3 +201,35 @@ FROM   (SELECT   customerid,
         FROM     sales.Orders
         GROUP BY CustomerID) AS t
 WHERE  rankcustomers <= 2;
+
+SELECT ROW_NUMBER() OVER (PARTITION BY orderid ORDER BY creationtime DESC) AS rn,
+       *
+FROM   sales.OrdersArchive;
+
+SELECT *
+FROM   (SELECT ROW_NUMBER() OVER (PARTITION BY orderid ORDER BY creationtime DESC) AS rn,
+               *
+        FROM   sales.OrdersArchive) AS t
+WHERE  rn = 1;
+
+SELECT *
+FROM   (SELECT ROW_NUMBER() OVER (PARTITION BY orderid ORDER BY creationtime DESC) AS rn,
+               *
+        FROM   sales.OrdersArchive) AS t
+WHERE  rn > 1;
+
+SELECT orderid,
+       sales,
+       ntile(3) OVER (ORDER BY sales DESC) AS category
+FROM   sales.orders;
+
+SELECT *,
+       CASE 
+       WHEN category = 1 THEN 'high' 
+       WHEN category = 2 THEN 'medium' 
+       WHEN category = 3 THEN 'low' 
+       END AS categorylevel
+FROM   (SELECT orderid,
+               sales,
+               ntile(3) OVER (ORDER BY sales DESC) AS category
+        FROM   sales.orders) AS t;
