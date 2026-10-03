@@ -1,58 +1,132 @@
+
 USE SalesDB;
-
-
 GO
--- NOW Dynamic Stored Procedure using Variables and If-Else
-CREATE OR ALTER PROCEDURE GetCustomerSummary3
-    @Country NVARCHAR (50)
+
+-- =========================================================
+-- Stored Procedure: GetCustomerSummary3
+-- Purpose:
+--   1. Handle NULL customer scores
+--   2. Generate a customer summary for a specified country
+--   3. Generate an order and sales report
+--   4. Handle runtime errors using TRY...CATCH
+-- =========================================================
+
+CREATE OR ALTER PROCEDURE dbo.GetCustomerSummary3
+    @Country NVARCHAR(50)
 AS
 BEGIN
+    SET NOCOUNT ON;
+
     BEGIN TRY
-        DECLARE @TotalCustomers AS INT, @AvgScore AS FLOAT;
-        -- prepare & cleanup 
-        IF EXISTS (SELECT 1
-                   FROM   sales.Customers
-                   WHERE  score IS NULL
-                          AND country = @Country)
-            BEGIN
-                PRINT ('Updating null scores to 0');
-                UPDATE sales.Customers
-                SET    score = 0
-                WHERE  score IS NULL
-                       AND country = @Country;
-            END
+
+        -- =================================================
+        -- Section 1: Declare Variables
+        -- =================================================
+
+        DECLARE @TotalCustomers INT,
+                @AvgScore FLOAT;
+
+        -- =================================================
+        -- Section 2: Data Preparation and NULL Handling
+        -- Check whether customers in the selected country
+        -- have missing scores.
+        -- WARNING: This UPDATE permanently changes the data.
+        -- =================================================
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM Sales.Customers
+            WHERE Score IS NULL
+              AND Country = @Country
+        )
+        BEGIN
+            PRINT 'Updating NULL scores to 0';
+
+            UPDATE Sales.Customers
+            SET Score = 0
+            WHERE Score IS NULL
+              AND Country = @Country;
+        END
         ELSE
-            BEGIN
-                PRINT ('No null found');
-            END
-        -- Generating report 1
-        SELECT @TotalCustomers = count(*),
-               @AvgScore = avg(score)
-        FROM   sales.Customers
-        WHERE  country = @Country;
-        PRINT 'Total Customers from ' + @Country + ': ' + CAST (@TotalCustomers AS NVARCHAR);
-        PRINT 'Average Score from ' + @Country + ': ' + CAST (@AvgScore AS NVARCHAR);
-        -- Generate Report 2 
-        SELECT count(orderID) AS TotalOrders,
-               Sum(Sales) AS TotalSales,
-               1 / 0
-        FROM   sales.Orders AS o
-               INNER JOIN
-               sales.Customers AS c
-               ON o.CustomerID = c.CustomerID;
+        BEGIN
+            PRINT 'No NULL scores found for this country';
+        END;
+
+        -- =================================================
+        -- Section 3: Report 1 - Customer Summary
+        -- Calculate the total number of customers and
+        -- their average score for the selected country.
+        -- =================================================
+
+        SELECT
+            @TotalCustomers = COUNT(*),
+            @AvgScore = AVG(Score)
+        FROM Sales.Customers
+        WHERE Country = @Country;
+
+        -- Display the customer summary
+        PRINT 'Country: ' + @Country;
+
+        PRINT 'Total Customers: '
+            + CAST(@TotalCustomers AS NVARCHAR(20));
+
+        PRINT 'Average Score: '
+            + COALESCE(CAST(@AvgScore AS NVARCHAR(30)), 'NULL');
+
+        -- =================================================
+        -- Section 4: Report 2 - Order and Sales Summary
+        -- Calculate total orders and total sales.
+        -- NOTE: The original query reports ALL countries.
+        -- Add a country filter if a country-specific report
+        -- is required.
+        -- =================================================
+
+        SELECT
+            COUNT(O.OrderID) AS TotalOrders,
+            SUM(O.Sales) AS TotalSales,
+
+            -- Intentional division-by-zero test:
+            -- This will cause a runtime error.
+            1 / 0 AS ErrorTest
+
+        FROM Sales.Orders AS O
+        INNER JOIN Sales.Customers AS C
+            ON O.CustomerID = C.CustomerID;
+
     END TRY
+
+    -- =====================================================
+    -- Section 5: Error Handling
+    -- Runs when a catchable error occurs in the TRY block.
+    -- =====================================================
+
     BEGIN CATCH
-        PRINT ('An error occured.');
-        PRINT ('Error Message: ' + ERROR_MESSAGE());
-        PRINT ('Error Number: ' + CAST (ERROR_NUMBER() AS NVARCHAR));
-        PRINT ('Error Line: ' + CAST (ERROR_LINE() AS NVARCHAR));
-        PRINT ('Error Procedure ' + ERROR_PROCEDURE());
-    END CATCH
-END
 
+        PRINT 'An error occurred during procedure execution.';
 
+        PRINT 'Error Message: ' + ERROR_MESSAGE();
+
+        PRINT 'Error Number: '
+            + CAST(ERROR_NUMBER() AS NVARCHAR(20));
+
+        PRINT 'Error Line: '
+            + CAST(ERROR_LINE() AS NVARCHAR(20));
+
+        PRINT 'Error Procedure: '
+            + COALESCE(ERROR_PROCEDURE(), 'Ad hoc statement');
+
+    END CATCH;
+
+END;
 GO
--- execute the stored procedure
-EXECUTE GetCustomerSummary3 @Country = 'Germany';
 
-EXECUTE GetCustomerSummary3 @Country = 'USA';
+-- =========================================================
+-- Section 6: Execute the Stored Procedure
+-- =========================================================
+
+EXEC dbo.GetCustomerSummary3 @Country = N'Germany';
+GO
+
+EXEC dbo.GetCustomerSummary3 @Country = N'USA';
+GO
