@@ -32,12 +32,29 @@ DROP PROCEDURE GetCustomerSummary1;
 
 
 GO
--- NOW Stored Procedure using Variables
+-- NOW Dynamic Stored Procedure using Variables and If-Else
 CREATE OR ALTER PROCEDURE GetCustomerSummary2
     @Country NVARCHAR (50)
 AS
 BEGIN
     DECLARE @TotalCustomers AS INT, @AvgScore AS FLOAT;
+    -- prepare & cleanup 
+    IF EXISTS (SELECT 1
+               FROM   sales.Customers
+               WHERE  score IS NULL
+                      AND country = @Country)
+        BEGIN
+            PRINT ('Updating null scores to 0');
+            UPDATE sales.Customers
+            SET    score = 0
+            WHERE  score IS NULL
+                   AND country = @Country;
+        END
+    ELSE
+        BEGIN
+            PRINT ('No null found');
+        END
+    -- Generating reports
     SELECT @TotalCustomers = count(*),
            @AvgScore = avg(score)
     FROM   sales.Customers
@@ -45,6 +62,10 @@ BEGIN
     PRINT 'Total Customers from ' + @Country + ': ' + CAST (@TotalCustomers AS NVARCHAR);
     PRINT 'Average Score from ' + @Country + ': ' + CAST (@AvgScore AS NVARCHAR);
 END
+
+
+GO
 -- execute the stored procedure
 EXECUTE GetCustomerSummary2 @Country = 'Germany';
+
 EXECUTE GetCustomerSummary2 @Country = 'USA';
